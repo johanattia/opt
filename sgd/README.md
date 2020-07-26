@@ -1,4 +1,0 @@
-# sgd
-Implementation of Stochastic Gradient Descent, Momentum and Nesterov Acceleration in [TensorFlow 2.x](https://github.com/tensorflow/tensorflow). 
-
-It bases on the article [On the importance of initialization and momentum in deep learning](http://proceedings.mlr.press/v28/sutskever13.pdf) and adds Momentum Scheduler, extending native SGD implementation of TensorFlow.
