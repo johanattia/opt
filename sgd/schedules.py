@@ -20,9 +20,9 @@ def log(x, base):
 
 
 class MomentumSchedule(object):
-    """Abstract class for momentum schedule.
+    """A serializable momentum schedule.
     
-    A MomentumSchedule instance subclass can be passed in as the momentum of `MomentumScheduledSGD`, see optimizers.py.
+    When training a model, a MomentumSchedule can be passed in as the momentum of MomentumScheduledSGD, see optimizers.py.
     """
 
     @abc.abstractmethod
@@ -41,7 +41,7 @@ class MomentumSchedule(object):
             config: Output of `get_config()`.
         
         Returns:
-            A `MomentumSchedule` instance.
+            A MomentumSchedule instance.
         """
 
         return cls(**config)
@@ -65,7 +65,7 @@ class ConvexSchedule(MomentumSchedule):
     """
     
     def __init__(self, const: float = 1.0, name: str = None):
-        """Applies appropriate schedule on convex functions to the momentum.
+        """Applies momentum schedule suitable for convex functions.
 
         Args:
             const: A scalar `float32` or `float64` `Tensor` or a Python number. Defaults to 1.0.
@@ -118,7 +118,7 @@ class StronglyConvexSchedule(MomentumSchedule):
     """
     
     def __init__(self, upper_momentum: float = 0.99, name: str = None):
-        """Applies schedule achieving exponential convergence on strongly convex functions to the momentum.
+        """Applies momentum schedule achieving exponential convergence on strongly convex functions.
 
         Args:
             upper_momentum:  A scalar `float32` or `float64` `Tensor` or a Python number. Defaults to 0.99.
