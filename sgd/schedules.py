@@ -64,7 +64,7 @@ class ConvexSchedule(MomentumSchedule):
         A 1-arg callable momentum schedule that takes the current optimizer step and outputs a scalar `Tensor` as momentum value.
     """
     
-    def __init__(self, const=1.0, name=None):
+    def __init__(self, const: float = 1.0, name: str = None):
         """Applies appropriate schedule on convex functions to the momentum.
 
         Args:
@@ -87,7 +87,7 @@ class ConvexSchedule(MomentumSchedule):
                 name='multiplicative_constant'
             )
             dtype = const.dtype
-            step = tf.convert_to_tensor(step, dtype=dtype)
+            step = tf.cast(step, dtype=dtype)
             step_value = tf.multiply(const, tf.divide(3, tf.add(step, 5)))
 
             return tf.subtract(1, step_value, name=name)
@@ -117,7 +117,7 @@ class StronglyConvexSchedule(MomentumSchedule):
         a scalar `Tensor` of the same type as `upper_momentum`.
     """
     
-    def __init__(self, upper_momentum=0.99, name=None):
+    def __init__(self, upper_momentum: float = 0.99, name: str = None):
         """Applies schedule achieving exponential convergence on strongly convex functions to the momentum.
 
         Args:
@@ -136,7 +136,7 @@ class StronglyConvexSchedule(MomentumSchedule):
 
         with tf.name_scope(self.name or 'StronglyConvexSchedule') as name:
             upper_momentum = tf.convert_to_tensor(
-                self.upper_momentum, 
+                self.upper_momentum,
                 name='upper_momentum'
             )
             dtype = upper_momentum.dtype
