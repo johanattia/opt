@@ -22,7 +22,7 @@ def log(x, base):
 class MomentumSchedule(object):
     """Abstract class for momentum schedule.
     
-    An instance subclass of `MomentumSchedule`can be passed in as the momentum of `MomentumScheduledSGD`, see optimizers.py.
+    A MomentumSchedule instance subclass can be passed in as the momentum of `MomentumScheduledSGD`, see optimizers.py.
     """
 
     @abc.abstractmethod
@@ -35,7 +35,7 @@ class MomentumSchedule(object):
 
     @classmethod
     def from_config(cls, config):
-        """Instantiates a `MomentumSchedule` from its config.
+        """Instantiates a MomentumSchedule class from its config.
         
         Args:
             config: Output of `get_config()`.
@@ -48,7 +48,7 @@ class MomentumSchedule(object):
 
 
 class ConvexSchedule(MomentumSchedule):
-    """Momentum schedule suitable for convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
+    """A MomentumSchedule suitable for convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
 
     ```python
     schedule = schedules.ConvexSchedule()
@@ -100,7 +100,7 @@ class ConvexSchedule(MomentumSchedule):
 
 
 class StronglyConvexSchedule(MomentumSchedule):
-    """Momentum schedule achieving exponential convergence on strongly convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
+    """A MomentumSchedule achieving exponential convergence on strongly convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
 
     ```python
     schedule = schedules.StronglyConvexSchedule(upper_momentum=0.99,)
