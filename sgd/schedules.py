@@ -3,6 +3,7 @@ import tensorflow as tf
 
 
 def log(x, base):
+
     """Logarithm with base.
     
     Args:
@@ -20,6 +21,7 @@ def log(x, base):
 
 
 class MomentumSchedule(object):
+
     """Momentum schedule abstract class. 
     
     A `MomentumSchedule` instance subclass can be passed in as the momentum of `MomentumScheduledSGD`, see optimizers.py.
@@ -35,6 +37,7 @@ class MomentumSchedule(object):
 
     @classmethod
     def from_config(cls, config):
+        
         """Instantiates a `MomentumSchedule` from its config.
         
         Args:
@@ -43,10 +46,12 @@ class MomentumSchedule(object):
         Returns:
             A `MomentumSchedule` instance.
         """
+
         return cls(**config)
 
 
 class ConvexSchedule(MomentumSchedule):
+    
     """Momentum schedule suitable for convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
 
     ```python
@@ -64,6 +69,7 @@ class ConvexSchedule(MomentumSchedule):
     """
     
     def __init__(self, name=None):
+        
         """Applies appropriate schedule on convex functions to the momentum.
 
         Args:
@@ -89,6 +95,7 @@ class ConvexSchedule(MomentumSchedule):
 
 
 class StronglyConvexSchedule(MomentumSchedule):
+    
     """Momentum schedule achieving exponential convergence on strongly convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
 
     ```python
@@ -107,6 +114,7 @@ class StronglyConvexSchedule(MomentumSchedule):
     """
     
     def __init__(self, upper_bound=0.99, name=None):
+        
         """Applies schedule achieving exponential convergence on strongly convex functions to the momentum.
 
         Args:
