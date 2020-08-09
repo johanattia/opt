@@ -88,7 +88,7 @@ class ConvexSchedule(MomentumSchedule):
                 name='multiplicative_constant'
             )
             step = tf.cast(step, dtype=tf.float32)
-            step_value = tf.multiply(const, tf.divide(3, tf.add(step, 5)))
+            step_value = const * 3 / (step + 5)
 
             return tf.subtract(1, step_value, name=name)
 
