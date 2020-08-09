@@ -2,7 +2,7 @@ import abc
 import tensorflow as tf
 
 
-def log(x, base):
+def log(x, base, dtype=tf.float32):
     """Logarithm with base.
     
     Args:
@@ -13,8 +13,8 @@ def log(x, base):
         A `Tensor` with same shape as x.
     """
 
-    n = tf.math.log(x)
-    d = tf.math.log(tf.cast(base, dtype=n.dtype))
+    n = tf.math.log(tf.cast(x, dtype=dtype))
+    d = tf.math.log(tf.cast(base, dtype=dtype))
 
     return tf.divide(n, d)
 
@@ -83,11 +83,11 @@ class ConvexSchedule(MomentumSchedule):
 
         with tf.name_scope(self.name or 'ConvexSchedule') as name:
             const = tf.convert_to_tensor(
-                self.const,
+                self.const, 
+                dtype=tf.float32, 
                 name='multiplicative_constant'
             )
-            dtype = const.dtype
-            step = tf.cast(step, dtype=dtype)
+            step = tf.cast(step, dtype=tf.float32)
             step_value = tf.multiply(const, tf.divide(3, tf.add(step, 5)))
 
             return tf.subtract(1, step_value, name=name)
@@ -137,10 +137,10 @@ class StronglyConvexSchedule(MomentumSchedule):
         with tf.name_scope(self.name or 'StronglyConvexSchedule') as name:
             upper_momentum = tf.convert_to_tensor(
                 self.upper_momentum,
+                dtype=tf.float32,
                 name='upper_momentum'
             )
-            dtype = upper_momentum.dtype
-            step = tf.cast(step, dtype=dtype)
+            step = tf.cast(step, dtype=tf.float32)
             step_value = 1 - tf.pow(2., -1 - log(tf.floor(step/250) + 1, 2))
 
             return tf.minimum(step_value, upper_momentum, name=name)

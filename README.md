@@ -3,4 +3,4 @@ This repository aims to provide implementations of modern optimization algorithm
 
 
 ## Resume
-* *sgd* : [On the importance of initialization and momentum in deep learning](http://proceedings.mlr.press/v28/sutskever13.pdf) Ilya Sutskever, James Martens, George Dahl and Geoffrey Hinton, ICML 2013. Particularly, it adds momentum scheduler and thus extends native SGD implementation of TensorFlow.
+* *sgd* : [On the importance of initialization and momentum in deep learning](http://proceedings.mlr.press/v28/sutskever13.pdf) Ilya Sutskever, James Martens, George Dahl and Geoffrey Hinton, ICML 2013. Particularly, it adds momentum schedule and thus extends native SGD implementation of TensorFlow.
