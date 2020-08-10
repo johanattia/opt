@@ -2,6 +2,8 @@ import numpy as np
 #import pandas as pd
 import tensorflow as tf
 
+from schedules import MomentumSchedule
+
 
 class GradientDescentOptimizer(object):
     
@@ -82,36 +84,58 @@ class GradientDescentOptimizer(object):
 
 
 
-class StochasticGradientDescent(tf.keras.optimizers.Optimizer): # Add a method ._scheduled_momentum_
+class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):
+    """Stochastic gradient descent and momentum optimizer, including Nesterov acceleration.
     
-    """ Stochastic Gradient Descent implementation, including Momentum and Nesterov acceleration.
-    
-    References : 
-    - https://arxiv.org/pdf/1212.0901.pdf
+    This implementation allows momentum scheduling. Concerning formulation details, see :
     - http://www.cs.toronto.edu/~hinton/absps/momentum.pdf
-    - https://github.com/tensorflow/tensorflow/blob/v2.2.0/tensorflow/python/keras/optimizer_v2/optimizer_v2.py
-    - https://github.com/tensorflow/tensorflow/blob/v2.1.0/tensorflow/python/keras/optimizer_v2/gradient_descent.py
-    - https://github.com/tensorflow/addons/blob/master/tensorflow_addons/optimizers/rectified_adam.py
-    - https://github.com/tensorflow/addons/blob/master/tensorflow_addons/optimizers/novograd.py
-    
+    - https://arxiv.org/pdf/1212.0901.pdf
     """
     
-    def __init__(self, learning_rate=0.01, momentum=0.0, nesterov=False, name='SGD', **kwargs):
+    def __init__(self, learning_rate: float = 0.01, momentum: float = 0.0, nesterov: bool = False, name: str = 'SGD', **kwargs):
+
+        """
+        Construct a new stochastic gradient descent or momentum optimizer.
+
+        Args:
+            learning_rate:
+
+            momentum:
+
+            nesterov:
+
+            name:
+        """
         
-        # Inheritance
-        super(StochasticGradientDescent, self).__init__(name, **kwargs)
-        
-        # Hyperparameters
+        super(MomentumScheduledSGD, self).__init__(name, **kwargs)
         self._set_hyper('learning_rate', kwargs.get('lr', learning_rate))
         self._set_hyper('decay', self._initial_decay)
-        self._set_hyper('momentum', momentum)
+        self._set_hyper_momentum('momentum', momentum)
         self.nesterov = nesterov
         
+    def _set_hyper_momentum(self, name, value):
+        """Set hyper `name` to value. value can be callable, tensor, numeric or MomentumSchedule.
+        
+        This method is added for readability in MomentumSchedule use case.
+        """
+
+        if name not in self._hyper:
+            self._hyper[name] = value
+
+        else:
+            prev_value = self._hyper[name]
+            if (callable(prev_value) or isinstance(prev_value, (tf.Tensor, int, float, MomentumSchedule)) or isinstance(value, MomentumSchedule)):
+                self._hyper[name] = value
+            else:
+                tf.keras.backend.set_value(self._hyper[name], value)
+
+        return
+    
     def _create_slots(self, var_list):
         
         for var in var_list:
             self.add_slot(var, 'momentum', initializer='zeros')
-            
+
         return
             
     def _resource_apply_dense(self, grad, var):
@@ -148,16 +172,32 @@ class StochasticGradientDescent(tf.keras.optimizers.Optimizer): # Add a method .
 
         raise NotImplementedError('Not yet implemented')
     
-    def get_config(self):
+    def _serialize_hyperparameter(self, hyperparameter_name):
+        """Serialize a hyperparameter that can be a float, callable, or Tensor.
         
-        config = super(StochasticGradientDescent, self).get_config()
-        config.update(
-            {
-                'learning_rate': self._serialize_hyperparameter('learning_rate'),
-                'decay': self._serialize_hyperparameter('decay'),
-                'momentum': self._serialize_hyperparameter('momentum'),
-                'nesterov': self.nesterov,
-            }
-        )
+        This method is overriden to allow MomentumSchedule serialization, without loss of readability.
+        """
+
+        value = self._hyper[hyperparameter_name]
+        if isinstance(value, (tf.keras.optimizers.schedules.LearningRateSchedule, MomentumSchedule)):
+            return tf.keras.optimizers.schedules.serialize(value)
+        
+        if callable(value):
+            return value()
+        
+        if tf.is_tensor(value):
+            return tf.keras.backend.get_value(value)
+        
+        return value
+    
+    def get_config(self):
+
+        config = super(MomentumScheduledSGD, self).get_config()
+        config.update({
+            'learning_rate': self._serialize_hyperparameter('learning_rate'),
+            'decay': self._serialize_hyperparameter('decay'),
+            'momentum': self._serialize_hyperparameter('momentum'),
+            'nesterov': self.nesterov,
+        })
         
         return config
