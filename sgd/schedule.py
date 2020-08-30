@@ -69,9 +69,8 @@ class ConvexSchedule(MomentumSchedule):
         """Applies momentum schedule suitable for convex functions.
 
         Args:
-            const: A scalar `float32` or `float64` `Tensor` or a Python number. Defaults to 1.0.
-                The multiplicative constant.
-            
+            const: A scalar `float32` or `float64` `Tensor` or a Python number. 
+                Defaults to 1.0. The multiplicative constant.
             name: String. Defaults to `ConvexSchedule`.
                 Optional name of the operation.
         """
@@ -123,9 +122,7 @@ class StronglyConvexSchedule(MomentumSchedule):
 
         Args:
             upper_momentum:  A scalar `float32` or `float64` `Tensor` or a 
-                Python number. 
-                Defaults to 0.99. The upper momentum.
-                
+                Python number. Defaults to 0.99. The upper momentum.
             name: String. Defaults to `StronglyConvexSchedule`.
                 Optional name of the operation.
         """
