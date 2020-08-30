@@ -12,7 +12,6 @@ def log(x, base, dtype=tf.float32):
     Returns:
         A `Tensor` with same shape as x.
     """
-
     n = tf.math.log(tf.cast(x, dtype=dtype))
     d = tf.math.log(tf.cast(base, dtype=dtype))
 
@@ -22,9 +21,9 @@ def log(x, base, dtype=tf.float32):
 class MomentumSchedule(object):
     """A serializable momentum schedule.
     
-    When training a model, a MomentumSchedule can be passed in as the momentum of MomentumScheduledSGD, see optimizers.py.
+    When training a model, a MomentumSchedule can be passed in as the momentum 
+    of MomentumScheduledSGD, see optimizers.py.
     """
-
     @abc.abstractmethod
     def __call__(self, step):
         raise NotImplementedError('Momentum schedule must override __call__')
@@ -43,12 +42,12 @@ class MomentumSchedule(object):
         Returns:
             A MomentumSchedule instance.
         """
-
         return cls(**config)
 
 
 class ConvexSchedule(MomentumSchedule):
-    """A MomentumSchedule suitable for convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
+    """A MomentumSchedule suitable for convex functions.
+    See http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
 
     ```python
     schedule = schedules.ConvexSchedule()
@@ -61,9 +60,9 @@ class ConvexSchedule(MomentumSchedule):
     ```
 
     Returns:
-        A 1-arg callable momentum schedule that takes the current optimizer step and outputs a scalar `Tensor` as momentum value.
+        A 1-arg callable momentum schedule that takes the current optimizer step 
+        and outputs a scalar `Tensor` as momentum value.
     """
-    
     def __init__(self, const: float = 1.0, name: str = None):
         """Applies momentum schedule suitable for convex functions.
 
@@ -74,7 +73,6 @@ class ConvexSchedule(MomentumSchedule):
             name: String. Defaults to `ConvexSchedule`.
                 Optional name of the operation.
         """
-
         super(ConvexSchedule, self).__init__()
         self.const = const
         self.name = name
@@ -100,7 +98,8 @@ class ConvexSchedule(MomentumSchedule):
 
 
 class StronglyConvexSchedule(MomentumSchedule):
-    """A MomentumSchedule achieving exponential convergence on strongly convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
+    """A MomentumSchedule achieving exponential convergence on 
+    strongly convex functions, see http://www.cs.toronto.edu/~hinton/absps/momentum.pdf.
 
     ```python
     schedule = schedules.StronglyConvexSchedule(upper_momentum=0.99,)
@@ -113,21 +112,21 @@ class StronglyConvexSchedule(MomentumSchedule):
     ```
 
     Returns:
-        A 1-arg callable momentum schedule that takes the current optimizer step and outputs the momentum value, 
-        a scalar `Tensor` of the same type as `upper_momentum`.
+        A 1-arg callable momentum schedule that takes the current 
+        optimizer step and outputs the momentum value, a scalar `Tensor` of 
+        the same type as `upper_momentum`.
     """
-    
     def __init__(self, upper_momentum: float = 0.99, name: str = None):
         """Applies momentum schedule achieving exponential convergence on strongly convex functions.
 
         Args:
-            upper_momentum:  A scalar `float32` or `float64` `Tensor` or a Python number. Defaults to 0.99.
-                The upper momentum.
+            upper_momentum:  A scalar `float32` or `float64` `Tensor` or a 
+                Python number. 
+                Defaults to 0.99. The upper momentum.
                 
             name: String. Defaults to `StronglyConvexSchedule`.
                 Optional name of the operation.
         """
-
         super(StronglyConvexSchedule, self).__init__()
         self.upper_momentum = upper_momentum
         self.name = name
