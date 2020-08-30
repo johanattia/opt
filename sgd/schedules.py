@@ -24,6 +24,7 @@ class MomentumSchedule(object):
     When training a model, a MomentumSchedule can be passed in as the momentum 
     of MomentumScheduledSGD, see optimizers.py.
     """
+
     @abc.abstractmethod
     def __call__(self, step):
         raise NotImplementedError('Momentum schedule must override __call__')
@@ -63,6 +64,7 @@ class ConvexSchedule(MomentumSchedule):
         A 1-arg callable momentum schedule that takes the current optimizer step 
         and outputs a scalar `Tensor` as momentum value.
     """
+
     def __init__(self, const: float = 1.0, name: str = None):
         """Applies momentum schedule suitable for convex functions.
 
@@ -78,7 +80,6 @@ class ConvexSchedule(MomentumSchedule):
         self.name = name
 
     def __call__(self, step):
-
         with tf.name_scope(self.name or 'ConvexSchedule') as name:
             const = tf.convert_to_tensor(
                 self.const, 
@@ -116,6 +117,7 @@ class StronglyConvexSchedule(MomentumSchedule):
         optimizer step and outputs the momentum value, a scalar `Tensor` of 
         the same type as `upper_momentum`.
     """
+
     def __init__(self, upper_momentum: float = 0.99, name: str = None):
         """Applies momentum schedule achieving exponential convergence on strongly convex functions.
 
@@ -132,7 +134,6 @@ class StronglyConvexSchedule(MomentumSchedule):
         self.name = name
 
     def __call__(self, step):
-
         with tf.name_scope(self.name or 'StronglyConvexSchedule') as name:
             upper_momentum = tf.convert_to_tensor(
                 self.upper_momentum,
