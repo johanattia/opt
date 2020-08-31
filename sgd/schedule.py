@@ -17,6 +17,7 @@ def log(x, base, dtype=tf.float32):
 
     return tf.divide(n, d)
 
+# TODO : unify class and __init__ docstrings
 
 class MomentumSchedule(object):
     """A serializable momentum schedule.
