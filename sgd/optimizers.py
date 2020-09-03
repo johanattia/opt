@@ -58,7 +58,6 @@ class Momentum(tf.keras.optimizers.Optimizer):
             or momentum > 0
         ):
             self._momentum = True
-
         if isinstance(momentum, (int, float)) and (momentum < 0 or momentum > 1):
             raise ValueError("`momentum` must be between [0, 1].")
         self._set_hyper("momentum", momentum)
