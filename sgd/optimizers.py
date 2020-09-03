@@ -9,11 +9,12 @@ from schedule import MomentumSchedule
 # TODO : minimizer function for TensorFlow
 
 
-class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):  # TODO : _prepare_local
+class Momentum(tf.keras.optimizers.Optimizer):
     """
     Stochastic gradient descent and momentum optimizer, including Nesterov acceleration.
 
-    This implementation allows momentum schedule, see schedule.py. Concerning formulation details, see :
+    This implementation allows momentum schedule, see schedule.py. Concerning formulation
+    details, see :
     - http://proceedings.mlr.press/v28/sutskever13.pdf
     - https://arxiv.org/pdf/1212.0901.pdf
 
@@ -46,8 +47,7 @@ class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):  # TODO : _prepare_lo
         name: str = "SGD",
         **kwargs
     ):
-
-        super(MomentumScheduledSGD, self).__init__(name, **kwargs)
+        super(Momentum, self).__init__(name, **kwargs)
         self._set_hyper("learning_rate", kwargs.get("lr", learning_rate))
         self._set_hyper("decay", self._initial_decay)
 
@@ -58,15 +58,16 @@ class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):  # TODO : _prepare_lo
             or momentum > 0
         ):
             self._momentum = True
-        
+
         if isinstance(momentum, (int, float)) and (momentum < 0 or momentum > 1):
             raise ValueError("`momentum` must be between [0, 1].")
-
         self._set_hyper("momentum", momentum)
+
         self.nesterov = nesterov
 
     def _set_hyper(self, name, value):
-        """Set hyper `name` to value. value can be callable, tensor, numeric.
+        """
+        Set hyper `name` to value. value can be callable, tensor, numeric.
         This method is overriden to allow MomentumSchedule use for momentum hyperparameter.
         """
         if isinstance(value, trackable.Trackable):
@@ -102,7 +103,8 @@ class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):  # TODO : _prepare_lo
                 tf.keras.backend.set_value(self._hyper[name], value)
 
     def _get_hyper(self, name, dtype=None):
-        """Get value of hyper `name`. value can be callable, tensor, numeric.
+        """
+        Get value of hyper `name`. value can be callable, tensor, numeric.
         This method is overriden to allow MomentumSchedule use for momentum hyperparameter.
         """
         if not self._hypers_created:
@@ -124,7 +126,8 @@ class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):  # TODO : _prepare_lo
             return value
 
     def _create_slots(self, var_list):
-        """Initialize new variables for momentum optimizer. Default initializer generates
+        """
+        Initialize new variables for momentum optimizer. Default initializer generates
         tensors initialized to 0.
         """
         if self._momentum:
@@ -132,14 +135,30 @@ class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):  # TODO : _prepare_lo
                 self.add_slot(var, "momentum")
 
     def _prepare_local(self, var_device, var_dtype, apply_state):
-        """docstring..."""
-        # TODO : dynamic momentum
-        super(MomentumScheduledSGD, self)._prepare_local(
-            var_device, var_dtype, apply_state
-        )
-        apply_state[(var_device, var_dtype)]["momentum"] = tf.identity(
-            self._get_hyper("momentum", var_dtype)
-        )
+        """
+        Prepare learning rate and momentum as Tensors with dtype=var_dtype
+        for var_device.
+        """
+        super(Momentum, self)._prepare_local(var_device, var_dtype, apply_state)
+
+        momentum = self._get_hyper("momentum", var_dtype)
+        if isinstance(momentum, MomentumSchedule):
+            mu_t, mu_t_1 = self._scheduled_momentum(momentum, var_dtype)
+            apply_state[(var_device, var_dtype)]["mu_t"] = tf.identity(mu_t)
+            apply_state[(var_device, var_dtype)]["mu_t-1"] = tf.identity(mu_t_1)
+        else:
+            apply_state[(var_device, var_dtype)]["momentum"] = tf.identity(momentum)
+
+    def _scheduled_momentum(self, scheduler, var_dtype):
+        """
+        Get scheduled momentum states as Tensors with dtype=var_dtype.
+        """
+        current_step = tf.cast(self.iterations, var_dtype)
+        previous_step = current_step - 1
+        mu_t = tf.cast(scheduler(current_step), var_dtype)
+        mu_t_1 = tf.cast(scheduler(previous_step), var_dtype)
+
+        return mu_t, mu_t_1
 
     def _resource_apply_dense(self, grad, var, apply_state=None):
         # var_dtype = var.dtype.base_dtype
@@ -174,10 +193,12 @@ class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):  # TODO : _prepare_lo
         raise NotImplementedError("Not yet implemented")
 
     def _serialize_hyperparameter(self, hyperparameter_name):
-        """Serialize a hyperparameter that can be a float, callable, or Tensor.
+        """
+        Serialize a hyperparameter that can be a float, callable, or Tensor.
         This method is overriden to allow MomentumSchedule serialization.
         """
         value = self._hyper[hyperparameter_name]
+
         if isinstance(
             value,
             (tf.keras.optimizers.schedules.LearningRateSchedule, MomentumSchedule),
@@ -193,7 +214,7 @@ class MomentumScheduledSGD(tf.keras.optimizers.Optimizer):  # TODO : _prepare_lo
         return value
 
     def get_config(self):
-        config = super(MomentumScheduledSGD, self).get_config()
+        config = super(Momentum, self).get_config()
         config.update(
             {
                 "learning_rate": self._serialize_hyperparameter("learning_rate"),

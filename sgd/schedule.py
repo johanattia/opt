@@ -76,16 +76,15 @@ class ConvexSchedule(MomentumSchedule):
     """
 
     def __init__(self, const: float = 1.0, name: str = None):
+        super(ConvexSchedule, self).__init__()
 
         if const < 0 or const > 1:
             raise ValueError("`const` must be between [0, 1].")
-
-        super(ConvexSchedule, self).__init__()
         self.const = const
+
         self.name = name
 
     def __call__(self, step):
-
         with tf.name_scope(self.name or "ConvexSchedule") as name:
             const = tf.convert_to_tensor(
                 self.const, dtype=tf.float32, name="multiplicative_constant"
@@ -127,16 +126,15 @@ class StronglyConvexSchedule(MomentumSchedule):
     """
 
     def __init__(self, upper_momentum: float = 0.99, name: str = None):
+        super(StronglyConvexSchedule, self).__init__()
 
         if upper_momentum < 0 or upper_momentum > 1:
             raise ValueError("`upper_momentum` must be between [0, 1].")
-
-        super(StronglyConvexSchedule, self).__init__()
         self.upper_momentum = upper_momentum
+
         self.name = name
 
     def __call__(self, step):
-
         with tf.name_scope(self.name or "StronglyConvexSchedule") as name:
             upper_momentum = tf.convert_to_tensor(
                 self.upper_momentum, dtype=tf.float32, name="upper_momentum"
