@@ -6,7 +6,38 @@ from tensorflow.python.training.tracking import base as trackable
 from schedule import MomentumSchedule
 
 
-# TODO : minimizer function for TensorFlow
+# TODO 1 : minimizer function for TensorFlow
+# TODO 2 : minimizer function for TensorFlow
+# TODO 3 : Momentum optimizer method : from_config
+
+
+def resource_apply_scheduled_momentum(
+    var: tf.Tensor,
+    accum: tf.Tensor,
+    lr: float,
+    grad: tf.Tensor,
+    current_momentum: float,
+    next_momentum: float,
+    use_locking: bool,
+    use_nesterov: bool,
+):
+
+    return NotImplementedError  # tf.group(*updates)
+
+
+def resource_sparse_apply_scheduled_momentum(
+    var: tf.Tensor,
+    accum: tf.Tensor,
+    lr: float,
+    grad: tf.Tensor,
+    indices: tf.Tensor,
+    current_momentum: float,
+    next_momentum: float,
+    use_locking: bool,
+    use_nesterov: bool,
+):
+
+    return NotImplementedError  # tf.group(*updates)
 
 
 class Momentum(tf.keras.optimizers.Optimizer):
@@ -52,12 +83,15 @@ class Momentum(tf.keras.optimizers.Optimizer):
         self._set_hyper("decay", self._initial_decay)
 
         self._momentum = False
+        self._momentum_schedule = False
         if (
             isinstance(momentum, (tf.Tensor, MomentumSchedule))
             or callable(momentum)
             or momentum > 0
         ):
             self._momentum = True
+        if isinstance(momentum, MomentumSchedule):
+            self._momentum_schedule = True
         if isinstance(momentum, (int, float)) and (momentum < 0 or momentum > 1):
             raise ValueError("`momentum` must be between [0, 1].")
         self._set_hyper("momentum", momentum)
@@ -71,10 +105,8 @@ class Momentum(tf.keras.optimizers.Optimizer):
         """
         if isinstance(value, trackable.Trackable):
             self._track_trackable(value, name, overwrite=True)
-
         if name not in self._hyper:
             self._hyper[name] = value
-
         else:
             prev_value = self._hyper[name]
             if (
@@ -108,17 +140,14 @@ class Momentum(tf.keras.optimizers.Optimizer):
         """
         if not self._hypers_created:
             self._create_hypers()
-
         value = self._hyper[name]
         if isinstance(
             value,
             (tf.keras.optimizers.schedules.LearningRateSchedule, MomentumSchedule),
         ):
             return value
-
         if callable(value):
             value = value()
-
         if dtype:
             return tf.cast(value, dtype)
         else:
@@ -141,10 +170,11 @@ class Momentum(tf.keras.optimizers.Optimizer):
         super(Momentum, self)._prepare_local(var_device, var_dtype, apply_state)
 
         momentum = self._get_hyper("momentum", var_dtype)
-        if isinstance(momentum, MomentumSchedule):
-            mu_t, mu_t_1 = self._scheduled_momentum(momentum, var_dtype)
-            apply_state[(var_device, var_dtype)]["mu_t"] = tf.identity(mu_t)
-            apply_state[(var_device, var_dtype)]["mu_t-1"] = tf.identity(mu_t_1)
+        if self._momentum_schedule:
+            current_mt, next_mt = self._scheduled_momentum(momentum, var_dtype)
+            apply_state[(var_device, var_dtype)].update(
+                {"mt_t": tf.identity(current_mt), "mt_t+1": tf.identity(next_mt)}
+            )
         else:
             apply_state[(var_device, var_dtype)]["momentum"] = tf.identity(momentum)
 
@@ -152,43 +182,49 @@ class Momentum(tf.keras.optimizers.Optimizer):
         """
         Get scheduled momentum states as Tensors with dtype=var_dtype.
         """
-        current_step = tf.cast(self.iterations, var_dtype)
-        previous_step = current_step - 1
-        mu_t = tf.cast(scheduler(current_step), var_dtype)
-        mu_t_1 = tf.cast(scheduler(previous_step), var_dtype)
+        local_step = tf.cast(self.iterations, var_dtype)
+        current_mt = tf.cast(scheduler(local_step), var_dtype)
+        next_mt = tf.cast(scheduler(local_step + 1), var_dtype)
 
-        return mu_t, mu_t_1
+        return current_mt, next_mt
 
     def _resource_apply_dense(self, grad, var, apply_state=None):
-        # var_dtype = var.dtype.base_dtype
-        #
-        # lr_t = self._decayed_lr(var_dtype)
-        # m_t = self._get_hyper('momentum', var_dtype)
-        #
-        # v = self.get_slot(var, 'momentum')
-        # v_t = v.assign(m_t * v - lr_t * grad, use_locking=self._use_locking)
-        #
-        # if self.nesterov:
-        #    var_update = var.assign_add(- m_t * v + (1 + m_t) * v_t, use_locking=self._use_locking)
-        #
-        # else:
-        #    var_update = var.assign_add(v_t, use_locking=self._use_locking)
-        #
-        # return tf.group(*[var_update, v_t])
-        raise NotImplementedError("Not yet implemented")
+        """
+        Update variable given gradient tensor is dense.
+        """
+        var_device, var_dtype = var.device, var.dtype.base_dtype
+        coefficients = (apply_state or {}).get(
+            (var_device, var_dtype)
+        ) or self._fallback_apply_state(var_device, var_dtype)
 
-    def _resource_apply_sparse(self, grad, var, indices, **kwargs):
-        # var_dtype = var.dtype.base_dtype
-        #
-        # lr_t = self._decayed_lr(var_dtype)
-        # m_t = self._get_hyper('momentum', var_dtype)
-        #
-        # v = self.get_slot(var, 'momentum')
-        # v_t = v.assign(m_t * v - lr_t * grad, use_locking=self._use_locking)
-        #
-        #
-        #
-        # return tf.group(*[var_update, v_t])
+        if self._momentum:
+            momentum_var = self.get_slot(var, "momentum")
+            if self._momentum_schedule:
+                pass
+            else:
+                return tf.raw_ops.ResourceApplyKerasMomentum(
+                    var=var.handle,
+                    accum=momentum_var.handle,
+                    lr=coefficients["lr_t"],
+                    grad=grad,
+                    momentum=coefficients["momentum"],
+                    use_locking=self._use_locking,
+                    use_nesterov=self.nesterov,
+                )
+        else:
+            return tf.raw_ops.ResourceApplyGradientDescent(
+                var.handle, coefficients["lr_t"], grad, use_locking=self._use_locking
+            )
+
+    def _resource_apply_sparse(self, grad, var, indices, apply_state=None):
+        """
+        Update variable given gradient tensor is sparse.
+        """
+        # var_device, var_dtype = var.device, var.dtype.base_dtype
+        # coefficients = (apply_state or {}).get(
+        #    (var_device, var_dtype)
+        # ) or self._fallback_apply_state(var_device, var_dtype)
+
         raise NotImplementedError("Not yet implemented")
 
     def _serialize_hyperparameter(self, hyperparameter_name):
@@ -197,16 +233,13 @@ class Momentum(tf.keras.optimizers.Optimizer):
         This method is overriden to allow MomentumSchedule serialization.
         """
         value = self._hyper[hyperparameter_name]
-
         if isinstance(
             value,
             (tf.keras.optimizers.schedules.LearningRateSchedule, MomentumSchedule),
         ):
             return tf.keras.optimizers.schedules.serialize(value)
-
         if callable(value):
             return value()
-
         if tf.is_tensor(value):
             return tf.keras.backend.get_value(value)
 
