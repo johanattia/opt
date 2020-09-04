@@ -7,7 +7,7 @@ from schedule import MomentumSchedule
 
 
 # TODO 1 : minimizer function for TensorFlow
-# TODO 2 : minimizer function for TensorFlow
+# TODO 2 : resource apply scheduled momentum functions
 # TODO 3 : Momentum optimizer method : from_config
 
 
@@ -21,7 +21,6 @@ def resource_apply_scheduled_momentum(
     use_locking: bool,
     use_nesterov: bool,
 ):
-
     return NotImplementedError  # tf.group(*updates)
 
 
@@ -36,7 +35,6 @@ def resource_sparse_apply_scheduled_momentum(
     use_locking: bool,
     use_nesterov: bool,
 ):
-
     return NotImplementedError  # tf.group(*updates)
 
 
@@ -171,9 +169,14 @@ class Momentum(tf.keras.optimizers.Optimizer):
 
         momentum = self._get_hyper("momentum", var_dtype)
         if self._momentum_schedule:
-            current_mt, next_mt = self._scheduled_momentum(momentum, var_dtype)
+            current_momentum, next_momentum = self._scheduled_momentum(
+                momentum, var_dtype
+            )
             apply_state[(var_device, var_dtype)].update(
-                {"mt_t": tf.identity(current_mt), "mt_t+1": tf.identity(next_mt)}
+                {
+                    "m_t": tf.identity(current_momentum),
+                    "m_t+1": tf.identity(next_momentum),
+                }
             )
         else:
             apply_state[(var_device, var_dtype)]["momentum"] = tf.identity(momentum)
@@ -183,10 +186,10 @@ class Momentum(tf.keras.optimizers.Optimizer):
         Get scheduled momentum states as Tensors with dtype=var_dtype.
         """
         local_step = tf.cast(self.iterations, var_dtype)
-        current_mt = tf.cast(scheduler(local_step), var_dtype)
-        next_mt = tf.cast(scheduler(local_step + 1), var_dtype)
+        current_momentum = tf.cast(scheduler(local_step), var_dtype)
+        next_momentum = tf.cast(scheduler(local_step + 1), var_dtype)
 
-        return current_mt, next_mt
+        return current_momentum, next_momentum
 
     def _resource_apply_dense(self, grad, var, apply_state=None):
         """
