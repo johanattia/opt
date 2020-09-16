@@ -21,6 +21,7 @@ def resource_apply_scheduled_momentum(
     use_locking: bool,
     use_nesterov: bool,
 ):
+
     return NotImplementedError  # tf.group(*updates)
 
 
@@ -223,12 +224,30 @@ class Momentum(tf.keras.optimizers.Optimizer):
         """
         Update variable given gradient tensor is sparse.
         """
-        # var_device, var_dtype = var.device, var.dtype.base_dtype
-        # coefficients = (apply_state or {}).get(
-        #    (var_device, var_dtype)
-        # ) or self._fallback_apply_state(var_device, var_dtype)
+        var_device, var_dtype = var.device, var.dtype.base_dtype
+        coefficients = (apply_state or {}).get(
+            (var_device, var_dtype)
+        ) or self._fallback_apply_state(var_device, var_dtype)
 
-        raise NotImplementedError("Not yet implemented")
+        if self._momentum:
+            momentum_var = self.get_slot(var, "momentum")
+            if self._momentum_schedule:
+                pass
+            else:
+                return tf.raw_ops.ResourceSparseApplyKerasMomentum(
+                    var=var.handle,
+                    accum=momentum_var.handle,
+                    lr=coefficients["lr_t"],
+                    grad=grad,
+                    indices=indices,
+                    momentum=coefficients["momentum"],
+                    use_locking=self._use_locking,
+                    use_nesterov=self.nesterov,
+                )
+        else:
+            return self._resource_scatter_add(
+                var.handle, indices, -grad * coefficients["lr_t"]
+            )
 
     def _serialize_hyperparameter(self, hyperparameter_name):
         """
