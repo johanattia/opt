@@ -7,8 +7,10 @@ from schedule import MomentumSchedule
 
 
 # TODO 1 : minimizer function for TensorFlow
-# TODO 2 : resource apply scheduled momentum functions
-# TODO 3 : Momentum optimizer method : from_config
+# TODO 2 : resource_sparse_apply_scheduled_momentum for sparse gradient updates
+
+
+logger = tf.get_logger()
 
 
 def resource_apply_scheduled_momentum(
@@ -21,8 +23,22 @@ def resource_apply_scheduled_momentum(
     use_locking: bool,
     use_nesterov: bool,
 ):
+    if use_nesterov:
+        accum_value = tf.identity(accum)
+        accum_update = accum.assign(
+            current_momentum * accum - lr * grad, use_locking=use_locking
+        )
+        var_update = var.assign_add(
+            -current_momentum * accum_value + (next_momentum + 1) * accum_update,
+            use_locking=use_locking,
+        )
+    else:
+        accum_update = accum.assign(
+            current_momentum * accum - lr * grad, use_locking=use_locking
+        )
+        var_update = var.assign_add(accum_update, use_locking=use_locking)
 
-    return NotImplementedError  # tf.group(*updates)
+    return tf.group(*[var_update, accum_update])
 
 
 def resource_sparse_apply_scheduled_momentum(
@@ -36,7 +52,7 @@ def resource_sparse_apply_scheduled_momentum(
     use_locking: bool,
     use_nesterov: bool,
 ):
-    return NotImplementedError  # tf.group(*updates)
+    return NotImplementedError
 
 
 class Momentum(tf.keras.optimizers.Optimizer):
@@ -91,6 +107,9 @@ class Momentum(tf.keras.optimizers.Optimizer):
             self._momentum = True
         if isinstance(momentum, MomentumSchedule):
             self._momentum_schedule = True
+            logger.warning(
+                "Sparse gradient updates are not supported yet for momentum scheduling."
+            )
         if isinstance(momentum, (int, float)) and (momentum < 0 or momentum > 1):
             raise ValueError("`momentum` must be between [0, 1].")
         self._set_hyper("momentum", momentum)
@@ -167,7 +186,6 @@ class Momentum(tf.keras.optimizers.Optimizer):
         for var_device.
         """
         super(Momentum, self)._prepare_local(var_device, var_dtype, apply_state)
-
         momentum = self._get_hyper("momentum", var_dtype)
         if self._momentum_schedule:
             current_momentum, next_momentum = self._scheduled_momentum(
@@ -204,7 +222,16 @@ class Momentum(tf.keras.optimizers.Optimizer):
         if self._momentum:
             momentum_var = self.get_slot(var, "momentum")
             if self._momentum_schedule:
-                pass
+                return resource_apply_scheduled_momentum(
+                    var=var,
+                    accum=momentum_var,
+                    lr=coefficients["lr_t"],
+                    grad=grad,
+                    current_momentum=coefficients["m_t"],
+                    next_momentum=coefficients["m_t+1"],
+                    use_locking=self._use_locking,
+                    use_nesterov=self.nesterov,
+                )
             else:
                 return tf.raw_ops.ResourceApplyKerasMomentum(
                     var=var.handle,
@@ -232,7 +259,9 @@ class Momentum(tf.keras.optimizers.Optimizer):
         if self._momentum:
             momentum_var = self.get_slot(var, "momentum")
             if self._momentum_schedule:
-                pass
+                return NotImplementedError(
+                    "Sparse gradient updates are not supported yet for momentum scheduling."
+                )
             else:
                 return tf.raw_ops.ResourceSparseApplyKerasMomentum(
                     var=var.handle,
@@ -246,7 +275,7 @@ class Momentum(tf.keras.optimizers.Optimizer):
                 )
         else:
             return self._resource_scatter_add(
-                var.handle, indices, -grad * coefficients["lr_t"]
+                var, indices, -grad * coefficients["lr_t"]
             )
 
     def _serialize_hyperparameter(self, hyperparameter_name):
