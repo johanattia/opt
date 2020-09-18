@@ -6,8 +6,7 @@ from tensorflow.python.training.tracking import base as trackable
 from schedule import MomentumSchedule
 
 
-# TODO 1 : minimizer function for TensorFlow
-# TODO 2 : resource_sparse_apply_scheduled_momentum for sparse gradient updates
+# TODO : resource_sparse_apply_scheduled_momentum for sparse gradient updates
 
 
 logger = tf.get_logger()
