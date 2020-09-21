@@ -30,6 +30,7 @@ def minimizer(
             tf.less_equal(func(comparing_position), func(initial_position))
         ):
             initial_position.assign(comparing_position.value())
+
             with tf.GradientTape() as tape:
                 value_function = func(comparing_position)
 
