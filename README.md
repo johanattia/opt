@@ -5,7 +5,7 @@ This repository aims to provide implementations of modern optimization algorithm
 
 ## Optimizers
 
-###### Momentum
+#### Momentum
 
 This momentum optimizer implementation adds momentum schedule and thus extends built-in SGD of TensorFlow 2.x. It is based on the following articles :
 * [On the importance of initialization and momentum in deep learning](http://proceedings.mlr.press/v28/sutskever13.pdf), Ilya Sutskever, James Martens, George Dahl and Geoffrey Hinton.
