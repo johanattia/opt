@@ -56,5 +56,6 @@ def minimizer(
             loop_vars=[initial_position, comparing_position],
             shape_invariants=[initial_position.shape, comparing_position.shape],
         )
+
         history["iterations"] = iterations.numpy()
         return history
